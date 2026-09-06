@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    
+ <meta name="robots" content="noindex">
+  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>はむまる1031 OFFICIAL SITE</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        :root {
+            /* カラーパレットを水色・ブルーベースに一新 */
+            --color-bg: #01050a; /* より深いネイビーブラック */
+            --color-main: #00f0ff; /* メインのシアン（水色） */
+            --color-sub: #0055ff; /* サブのディープブルー（旧パープルの代替） */
+            --color-accent: #00ffaa; /* アクセントをミントグリーンに */
+            --color-warning: #ffb700;
+            --color-text: #eaf4ff;
+            --color-text-muted: #7a9bb8;
+            
+            --font-en: 'Montserrat', sans-serif;
+            --font-cyber: 'Orbitron', 'Noto Sans JP', sans-serif;
+            --font-sharp: 'Rajdhani', 'Noto Sans JP', sans-serif;
+            
+            /* パネルの視認性向上のための設定 */
+            --panel-bg: rgba(2, 6, 15, 0.85); 
+            --border-cyber: rgba(0, 240, 255, 0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        html, body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: var(--font-sharp);
+            line-height: 1.6;
+        }
+
+        /* 3D背景用キャンバス */
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 1;
+        }
+
+        /* コーナーフレーム装飾 */
+        .lab-background-grid {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 2; overflow: hidden;
+        }
+        .lab-corner-cross {
+            position: absolute; width: 20px; height: 20px;
+            border-color: var(--color-sub); border-style: solid;
+        }
+        .cross-tl { top: 20px; left: 20px; border-width: 2px 0 0 2px; }
+        .cross-tr { top: 20px; right: 20px; border-width: 2px 2px 0 0; }
+        .cross-bl { bottom: 20px; left: 20px; border-width: 0 0 2px 2px; }
+        .cross-br { bottom: 20px; right: 20px; border-width: 0 2px 2px 0; }
+
+        /* スキャンライン（少し薄くして見やすく） */
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
+            background-size: 100% 4px; z-index: 999; pointer-events: none; opacity: 0.25;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--color-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--color-sub); border-radius: 3px; box-shadow: 0 0 8px var(--color-sub); }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+        html { scroll-behavior: smooth; }
+        .en-font { font-family: var(--font-en); }
+
+        header, main, footer, #transition-overlay, #loader {
+            position: relative; z-index: 10;
+        }
+
+        /* トランジション */
+        #transition-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 240, 255, 0.15);
+            z-index: 9995; pointer-events: none; opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        #transition-overlay.active { opacity: 1; }
+
+        /* ローディング画面 */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--color-bg); z-index: 9999;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+            transition: opacity 0.4s ease, visibility 0.4s;
+            padding: 2rem; text-align: center;
+        }
+        #loader.fade-out { opacity: 0; visibility: hidden; }
+
+        .loader-box {
+            border: 2px solid var(--color-sub);
+            padding: 2.5rem 3.5rem;
+            background: rgba(0, 85, 255, 0.08);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 85, 255, 0.3), inset 0 0 20px rgba(0, 240, 255, 0.1);
+        }
+        .loader-box::before {
+            content: "HAMUMARU_1031 // BOOT_SEQUENCE";
+            position: absolute; top: -11px; left: 20px;
+            background: var(--color-bg); padding: 0 10px;
+            font-family: var(--font-en); font-size: 0.75rem; color: var(--color-main);
+            letter-spacing: 0.2em;
+        }
+        
+        .glitch-name {
+            font-size: clamp(1.8rem, 5vw, 3.5rem);
+            font-weight: 900; font-family: var(--font-cyber);
+            color: #fff; letter-spacing: 0.15em; margin-bottom: 1rem;
+            position: relative; display: inline-block;
+        }
+        .glitch-name::before, .glitch-name::after {
+            content: attr(data-text); position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%; background: var(--color-bg);
+        }
+        .glitch-name::before {
+            left: 3px; text-shadow: -2px 0 var(--color-accent);
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 0.25s infinite linear alternate-reverse;
+        }
+        .glitch-name::after {
+            left: -3px; text-shadow: 2px 0 var(--color-main);
+            clip: rect(85px, 450px, 140px, 0);
+            animation: glitch-anim2 0.2s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim {
+            0% { clip: rect(2px, 9999px, 34px, 0); transform: skew(0.5deg); }
+            50% { clip: rect(40px, 9999px, 85px, 0); transform: skew(1.2deg); }
+            100% { clip: rect(15px, 9999px, 60px, 0); transform: skew(0.2deg); }
+        }
+        @keyframes glitch-anim2 {
+            0% { clip: rect(50px, 9999px, 90px, 0); transform: skew(0.8deg); }
+            50% { clip: rect(5px, 9999px, 45px, 0); transform: skew(0.4deg); }
+            100% { clip: rect(35px, 9999px, 75px, 0); transform: skew(1.5deg); }
+        }
+
+        .loader-status {
+            font-family: var(--font-en); font-size: 0.8rem; color: var(--color-main);
+            letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 1.2rem;
+            min-height: 1.2em; text-shadow: 0 0 5px var(--color-main);
+        }
+        .progress-bar-container {
+            width: 280px; height: 5px; background: rgba(0, 240, 255, 0.1);
+            margin: 0 auto; position: relative; overflow: hidden;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+        .progress-bar {
+            width: 0%; height: 100%; background: var(--color-main);
+            box-shadow: 0 0 15px var(--color-main); transition: width 0.05s linear;
+        }
+
+        /* Header */
+        header {
+            position: fixed; top: 0; left: 0; width: 100%; padding: 1rem 5%;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(1, 5, 10, 0.95);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+            z-index: 5000; transition: padding 0.2s ease;
+            backdrop-filter: blur(8px);
+        }
+        header.scrolled { 
+            padding: 0.7rem 5%; border-bottom-color: var(--color-main); 
+            box-shadow: 0 5px 20px rgba(0, 240, 255, 0.15); 
+        }
+        .header-logo {
+            font-size: 1rem; font-weight: 900; color: var(--color-main);
+            letter-spacing: 0.2em; font-family: var(--font-cyber);
+            display: flex; align-items: center; gap: 8px;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+        }
+        .header-logo::before {
+            content: ""; display: inline-block; width: 8px; height: 8px; background: var(--color-accent);
+            box-shadow: 0 0 10px var(--color-accent);
+        }
+
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a {
+            font-family: var(--font-en); font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 0.15em; color: var(--color-text-muted); transition: color 0.2s, text-shadow 0.2s;
+        }
+        .nav-links a:hover, .nav-links a.nav-active {
+            color: var(--color-main); text-shadow: 0 0 12px var(--color-main);
+        }
+
+        .menu-toggle {
+            display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 5px; z-index: 5001;
+        }
+        .menu-toggle span { width: 24px; height: 2px; background-color: var(--color-main); box-shadow: 0 0 8px var(--color-main); }
+
+        @media (max-width: 900px) {
+            .nav-links {
+                position: fixed; top: 0; right: -100%; width: 70%; height: 100vh;
+                background-color: rgba(1, 5, 10, 0.98);
+                flex-direction: column; justify-content: center; align-items: center;
+                gap: 2rem; transition: right 0.25s ease; border-left: 1px solid var(--border-cyber);
+                z-index: 4999;
+            }
+            .nav-links.active { right: 0; }
+            .menu-toggle { display: flex; }
+        }
+
+        section { padding: 6rem 5% 3rem; max-width: 1200px; margin: 0 auto; position: relative; }
+
+        .fade-in {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+        /* 視認性向上のためのパネル設定 */
+        .panel {
+            background: var(--panel-bg);
+            border: 1.5px solid var(--border-cyber);
+            border-radius: 4px;
+            padding: 2.5rem;
+            position: relative;
+            /* 背景の光と明確に分けるための強い影とぼかし */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.95), inset 0 0 30px rgba(0, 85, 255, 0.15);
+            backdrop-filter: blur(12px); 
+        }
+        .panel::before {
+            content: "HAMUMARU_1031 // CORE_ACTIVE";
+            position: absolute; top: -11px; right: 20px;
+            background: var(--color-bg); border: 1px solid var(--border-cyber);
+            padding: 0 10px; font-size: 0.65rem; font-family: var(--font-en);
+            color: var(--color-main); letter-spacing: 0.2em;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+        .panel::after {
+            content: ""; position: absolute; bottom: 0; right: 0;
+            width: 20px; height: 20px;
+            border-right: 2px solid var(--color-main);
+            border-bottom: 2px solid var(--color-main);
+            box-shadow: 3px 3px 8px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn {
+            display: inline-block; padding: 0.8rem 2.2rem; background: rgba(0, 85, 255, 0.15);
+            color: #fff; border: 1px solid var(--color-main); border-radius: 2px;
+            font-family: var(--font-en); font-size: 0.85rem; font-weight: 900; letter-spacing: 0.15em;
+            cursor: pointer; text-align: center; position: relative; overflow: hidden;
+            transition: all 0.2s;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+        .btn:hover { 
+            background: var(--color-sub); border-color: var(--color-main); 
+            color: #fff; box-shadow: 0 0 25px var(--color-main); 
+        }
+
+        /* HOME Section */
+        #home {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding-top: 8px;
+        }
+        .home-container {
+            display: flex; width: 100%; align-items: center; justify-content: space-between; z-index: 2; gap: 2rem;
+        }
+        
+        .home-image-area {
+            flex: 1.1; display: flex; justify-content: center; align-items: center; position: relative;
+            animation: floatCharacter 4s ease-in-out infinite;
+            padding-top: 3rem;
+        }
+        @keyframes floatCharacter {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .home-image-area img {
+            width: 100%; max-width: 520px; height: auto; max-height: 70vh; object-fit: contain;
+            filter: drop-shadow(0 20px 35px rgba(0, 240, 255, 0.3));
+            cursor: pointer; transition: transform 0.2s ease;
+        }
+        .home-image-area img:hover { transform: scale(1.02); }
+
+        .hero-ring {
+            position: absolute; width: min(440px, 75vw); height: min(440px, 75vw);
+            border: 1.5px dashed rgba(0, 240, 255, 0.5); border-radius: 50%;
+            pointer-events: none; z-index: 1;
+            box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.2), 0 0 20px rgba(0, 85, 255, 0.3);
+            animation: spinRing 35s linear infinite;
+        }
+        @keyframes spinRing { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .hero-ring-inner {
+            position: absolute; width: min(330px, 60vw); height: min(330px, 60vw);
+            border: 1.5px solid rgba(0, 85, 255, 0.6); border-radius: 50%;
+            border-left-color: transparent; border-right-color: transparent;
+            pointer-events: none; z-index: 1;
+            animation: spinRingReverse 25s linear infinite;
+        }
+        @keyframes spinRingReverse { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+
+        .cyber-speech-bubble {
+            position: absolute; top: -5px; left: 50%;
+            background: rgba(1, 5, 10, 0.98);
+            border: 1.5px solid var(--color-main);
+            padding: 0.6rem 1.4rem; border-radius: 4px;
+            font-family: var(--font-cyber); font-weight: 700; font-size: 0.95rem;
+            color: #fff; box-shadow: 0 0 25px rgba(0, 240, 255, 0.6), inset 0 0 10px rgba(0, 240, 255, 0.2);
+            opacity: 0; transform: translateX(-50%) translateY(10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none; z-index: 100; white-space: nowrap;
+        }
+        .cyber-speech-bubble.active { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .cyber-speech-bubble::after {
+            content: ""; position: absolute; bottom: -6px; left: 50%;
+            transform: translateX(-50%) rotate(45deg); width: 10px; height: 10px;
+            background: rgba(1, 5, 10, 0.98);
+            border-right: 1.5px solid var(--color-main); border-bottom: 1.5px solid var(--color-main);
+        }
+
+        .home-text-area { flex: 1; position: relative; z-index: 3; }
+        .hero-status-line {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+            font: 700 7px var(--font-en); letter-spacing: 0.25em; color: var(--color-accent);
+        }
+        .hero-status-line span { width: 6px; height: 6px; background: var(--color-accent); box-shadow: 0 0 10px var(--color-accent); }
+
+        .home-logo-jp {
+            font-size: clamp(2.5rem, 5.5vw, 5rem); font-weight: 900; color: #fff; line-height: 1.1;
+            margin-bottom: 0.2rem; font-family: var(--font-cyber);
+            text-shadow: 0 0 25px rgba(0, 100, 255, 0.8), 2px 2px 0px rgba(0,0,0,0.8);
+        }
+        .home-logo-en {
+            font-family: var(--font-en); font-size: clamp(0.9rem, 2vw, 1.5rem); font-weight: 900;
+            color: var(--color-main); letter-spacing: 0.2em; margin-bottom: 1.5rem;
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+        }
+        .home-catchphrase {
+            font-size: 1rem; color: #fff; margin-bottom: 2rem;
+            border-left: 2px solid var(--color-main); padding: 0.6rem 1.2rem; font-weight: 700;
+            background: linear-gradient(90deg, rgba(0, 240, 255, 0.15), rgba(0, 85, 255, 0.02));
+            box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.05);
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        .home-nav { display: flex; flex-wrap: wrap; gap: 1rem; }
+
+        @media (max-width: 900px) {
+            #home { padding-top: 8rem; }
+            .home-container { flex-direction: column; text-align: center; }
+            .home-text-area { padding-left: 0; }
+            .home-catchphrase { border-left: none; border-top: 1px solid var(--color-main); background: none; }
+            .home-nav { justify-content: center; }
+            .cyber-speech-bubble { font-size: 0.85rem; }
+        }
+
+        .section-meta {
+            margin-bottom: 6px; color: var(--color-main);
+            font: 700 7px var(--font-en); letter-spacing: 0.25em;
+        }
+        .section-title {
+            font-size: clamp(1.6rem, 3.5vw, 2.6rem); 
+            font-family: var(--font-cyber); font-weight: 900; color: #ffffff;
+            letter-spacing: 0.08em; margin-bottom: 2rem; 
+            display: flex; align-items: center; gap: 1rem;
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+        }
+        .section-title::after {
+            content: ""; flex-grow: 1; height: 1.5px;
+            background: linear-gradient(90deg, var(--color-main), transparent);
+            box-shadow: 0 0 10px var(--color-main);
+        }
+
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .profile-list { display: flex; flex-direction: column; gap: 1rem; }
+        .profile-item { border-bottom: 1px solid rgba(0, 240, 255, 0.2); padding-bottom: 0.6rem; }
+        .profile-label { 
+            font-family: var(--font-en); color: var(--color-main); 
+            font-size: 0.75rem; font-weight: 900; letter-spacing: 0.1em; 
+            margin-bottom: 0.2rem; text-shadow: 0 0 8px rgba(0, 240, 255, 0.3); 
+        }
+        .profile-value { font-size: 1.05rem; font-weight: 700; color: #ffffff; text-shadow: 0 0 4px rgba(0,0,0,0.9); }
+        @media (max-width: 768px) { .profile-grid { grid-template-columns: 1fr; } }
+
+        .utau-desc { margin-bottom: 2rem; font-size: 1rem; color: #d0e3f5; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+        .audio-player {
+            background: rgba(1, 3, 8, 0.8); border: 1.5px solid rgba(0, 240, 255, 0.4);
+            border-radius: 4px; padding: 1.5rem; display: flex; align-items: center; gap: 1.8rem;
+            margin-bottom: 2rem;
+            box-shadow: inset 0 0 20px rgba(0, 100, 255, 0.2), 0 5px 15px rgba(0, 0, 0, 0.8);
+        }
+        .play-btn {
+            width: 55px; height: 55px; border-radius: 50%; background: transparent;
+            border: 2px solid var(--color-main); cursor: pointer; display: flex;
+            justify-content: center; align-items: center; flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .play-btn:hover { box-shadow: 0 0 25px var(--color-main); transform: scale(1.05); }
+
+        .icon-play {
+            width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 14px;
+            border-color: transparent transparent transparent var(--color-main);
+            margin-left: 2px; filter: drop-shadow(0 0 6px var(--color-main));
+        }
+        .play-btn.playing .icon-play {
+            border-style: double; border-width: 0 0 0 14px; height: 14px; width: 14px; margin-left: 0; border-color: var(--color-main);
+        }
+
+        .audio-controls { flex: 1; display: flex; flex-direction: column; gap: 0.6rem; }
+        .audio-info {
+            display: flex; justify-content: space-between; font-family: var(--font-en);
+            font-size: 0.8rem; color: var(--color-main); font-weight: 900; letter-spacing: 0.1em;
+        }
+        .progress-bg {
+            width: 100%; height: 5px; background: rgba(0, 240, 255, 0.15);
+            border-radius: 2px; position: relative; cursor: pointer;
+        }
+        .progress-current {
+            position: absolute; top: 0; left: 0; height: 100%;
+            background: var(--color-main); width: 0%;
+            box-shadow: 0 0 12px var(--color-main);
+        }
+
+        .visualizer { display: flex; align-items: center; gap: 3px; height: 20px; }
+        .bar { width: 3px; background: rgba(0, 240, 255, 0.3); height: 20%; border-radius: 1px; }
+        .visualizer.active .bar {
+            background: var(--color-accent); box-shadow: 0 0 10px var(--color-accent);
+            animation: soundWave 0.4s ease-in-out infinite alternate;
+        }
+        .visualizer.active .bar:nth-child(1) { animation-delay: 0.0s; }
+        .visualizer.active .bar:nth-child(2) { animation-delay: 0.1s; }
+        .visualizer.active .bar:nth-child(3) { animation-delay: 0.2s; }
+        .visualizer.active .bar:nth-child(4) { animation-delay: 0.05s; }
+        .visualizer.active .bar:nth-child(5) { animation-delay: 0.15s; }
+        .visualizer.active .bar:nth-child(6) { animation-delay: 0.25s; }
+        .visualizer.active .bar:nth-child(7) { animation-delay: 0.08s; }
+        @keyframes soundWave { 0% { height: 20%; } 100% { height: 100%; } }
+
+        @media (max-width: 600px) {
+            .audio-player { flex-direction: column; align-items: stretch; }
+            .play-btn { margin: 0 auto; }
+        }
+
+        .guideline-item h3 {
+            color: var(--color-main); font-size: 1.1rem; font-weight: 900; margin-bottom: 0.6rem;
+            display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-cyber);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+        }
+        .guideline-item h3::before {
+            content: ""; display: inline-block; width: 4px; height: 14px;
+            background-color: var(--color-main); box-shadow: 0 0 8px var(--color-main);
+        }
+        .guideline-text { color: #d0e3f5; line-height: 1.7; white-space: pre-line; font-size: 0.95rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.9); }
+
+        .link-group h3 {
+            font-family: var(--font-en); color: var(--color-main); font-weight: 900; margin-bottom: 0.8rem;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.3); padding-bottom: 0.4rem; font-size: 0.9rem;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+        }
+
+        footer {
+            text-align: center; padding: 3rem 1rem 2rem; font-family: var(--font-en);
+            color: var(--color-text-muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="transition-overlay"></div>
+
+    <div class="lab-background-grid">
+        <div class="lab-corner-cross cross-tl"></div>
+        <div class="lab-corner-cross cross-tr"></div>
+        <div class="lab-corner-cross cross-bl"></div>
+        <div class="lab-corner-cross cross-br"></div>
+    </div>
+
+    <div id="loader">
+        <div class="loader-box">
+            <div class="glitch-name" id="loader-title" data-text="HAMUMARU 1031">HAMUMARU 1031</div>
+            <div class="loader-status" id="loader-logs">SYS.BOOT...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="loader-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <header id="header">
+        <a href="#home" class="header-logo en-font">HAMUMARU_1031.SYS</a>
+        <nav>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="#home">HOME</a></li>
+                <li><a href="#character">CHARACTER</a></li>
+                <li><a href="#utau">UTAU</a></li>
+                <li><a href="#guideline">GUIDELINE</a></li>
+                <li><a href="#link">LINK</a></li>
+            </ul>
+        </nav>
+        <div class="menu-toggle" id="menu-toggle">
+            <span></span><span></span><span></span>
+        </div>
+    </header>
+
+    <main>
+        <section id="home">
+            <div class="home-container">
+                <div class="home-image-area fade-in">
+                    <div class="hero-ring"></div>
+                    <div class="hero-ring-inner"></div>
+                    <div class="cyber-speech-bubble" id="speech-bubble">ドリトスやんやんハムアタック！</div>
+                    <img src="character.png" alt="はむまる1031" id="home-char-img" title="タップしてね！">
+                </div>
+
+                <div class="home-text-area fade-in">
+                    <div class="hero-status-line"><span></span> UNIT STATUS: ONLINE <b>[HAMUMARU 1031]</b></div>
+                    <h1 class="home-logo-jp">はむまる1031</h1>
+                    <div class="home-logo-en">HAMUMARU TENSAI</div>
+                    <p class="home-catchphrase">「さあ！お前もハムろうぅ！」</p>
+                    <div class="home-nav">
+                        <a href="#character" class="btn">CHARACTER</a>
+                        <a href="#utau" class="btn">UTAU</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="character" class="fade-in">
+            <div class="section-meta">01 // CHARACTER DATABASE</div>
+            <h2 class="section-title">CHARACTER</h2>
+            <div class="panel profile-grid">
+                <div class="profile-list">
+                    <div class="profile-item">
+                        <div class="profile-label">NAME / READING</div>
+                        <div class="profile-value">はむまる1031</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">GENDER</div>
+                        <div class="profile-value">ロボ</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">AGE / BIRTHDAY</div>
+                        <div class="profile-value">6歳 / 11月27日</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">HEIGHT / WEIGHT</div>
+                        <div class="profile-value">113.3cm / 18.6kg</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">OUTFIT</div>
+                        <div class="profile-value">白衣</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">LIKE / DISLIKE</div>
+                        <div class="profile-value">好：ハム / 嫌：レタス, キャベツ</div>
+                    </div>
+                </div>
+                <div class="profile-list">
+                    <div class="profile-item">
+                        <div class="profile-label">PERSONALITY</div>
+                        <div class="profile-value">ガキンチョ 真面目</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">SKILL / WEAKNESS</div>
+                        <div class="profile-value">特：煽り / 苦：早口</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">ITEM</div>
+                        <div class="profile-value">三叉槍</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">CATCHCOPY &amp; PHRASE</div>
+                        <div class="profile-value" style="font-size: 0.95rem;">「さあ！お前もハムろうぅ！」<br>決め：ドリトスやんやんハムアタック！</div>
+                    </div>
+                    <div class="profile-item" style="border: none;">
+                        <div class="profile-label">SETTINGS</div>
+                        <div class="profile-value" style="font-size: 0.95rem; font-weight: 700; margin-top: 0.2rem; line-height: 1.5;">
+                            1031番に作られた人型サメハムボロボット。<br>研修中の好奇心旺盛でハムボな研究室の社員。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="utau" class="fade-in">
+            <div class="section-meta">02 // VOICE SYSTEM</div>
+            <h2 class="section-title">UTAU</h2>
+            <div class="panel">
+                <h3 style="font-size: 1.3rem; font-weight: 900; margin-bottom: 0.8rem; color: #fff; font-family: var(--font-cyber);">はむまる1031 UTAU音源</h3>
+                <p class="utau-desc">「はむまる1031のUTAU単独音音源です。」</p>
+
+                <div class="audio-player">
+                    <button class="play-btn" id="play-btn" aria-label="再生/停止">
+                        <div class="icon-play"></div>
+                    </button>
+                    <div class="audio-controls">
+                        <div class="audio-info">
+                            <span>SAMPLE VOICE</span>
+                            <span id="time-display">0:00 / 0:00</span>
+                        </div>
+                        <div class="visualizer" id="visualizer">
+                            <div class="bar"></div><div class="bar"></div>
+                            <div class="bar"></div><div class="bar"></div>
+                            <div class="bar"></div><div class="bar"></div>
+                            <div class="bar"></div>
+                        </div>
+                        <div class="progress-bg" id="progress-bg">
+                            <div class="progress-current" id="progress-current"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <audio id="audio-source" src="audio/サンプル.wav" preload="metadata"></audio>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="Download/hamumaru1031_voice.zip" class="btn" download>DOWNLOAD .ZIP</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="guideline" class="fade-in">
+            <div class="section-meta">03 // LICENSE &amp; TERMS</div>
+            <h2 class="section-title">GUIDELINE</h2>
+            <div class="panel">
+                <div class="guideline-item">
+                    <h3>UTAU音源 利用規約</h3>
+                    <p class="guideline-text">さあ!!お前もハムろうぅ!!
+
+最終更新：2026/09/05
+
+本規約は、【@samemaru2949】が制作・配布するUTAU音源「【hamumaru1031_voice】」（以下「本音源」）およびキャラクター「【はむまる1031】」の利用条件を定めるものです。
+
+本音源を使用した時点で、本規約に同意したものとみなします。
+必ず本規約をご確認のうえ、ご利用ください。
+
+---
+
+1. 基本事項
+
+・本音源の著作権・その他の権利は【@samemaru2949】に帰属します。
+・本音源を使用した作品について、制作者への事前連絡は【必要】です。
+・本音源を使用した作品を公開する場合、以下のクレジットを記載してください。
+
+音源名：【hamumaru1031_voice】
+
+記載場所は動画説明欄、作品説明欄、クレジット等、確認できる場所であれば構いません。
+
+---
+
+2. 許可されていること
+
+以下の用途で本音源を利用できます。
+
+・UTAU / OpenUtau等での歌唱
+・HANASU等の音声作品
+・UTAUカバー作品
+・オリジナル楽曲への使用
+・本音源を使用した動画・イラスト・音楽作品等の公開
+・キー変更、調声、ピッチ変更、エフェクト等の加工
+
+※楽曲そのものに別途権利・利用規約がある場合は、そちらも遵守してください。
+
+---
+
+3. 商用利用
+
+本音源を使用した作品の商用利用については、
+
+【× 禁止します】
+
+とします。
+
+※CD・同人作品・動画収益・サブスクリプション配信等を含む場合があります。
+
+---
+
+4. 禁止事項
+
+以下の行為を禁止します。
+
+・本音源の自作発言
+・本音源そのものの再配布・転載
+・本音源を加工したものを、許可なく再配布すること
+・本音源やキャラクターの権利者を偽る行為
+・第三者への誹謗中傷や嫌がらせを目的とした利用
+
+---
+
+5. 音源の改変について
+
+調声・ピッチ変更・エフェクト処理等、楽曲制作上必要な加工は【許可】します。
+
+原音設定（oto.ini）の改変は【禁止】します。
+改変した原音設定の配布は【禁止】とします。
+原音そのものの加工については【禁止】とします。
+
+---
+
+6. キャラクターについて
+
+「【はむまる1031】」のキャラクターイラスト等を使用する場合、以下の条件に従ってください。
+
+・二次創作：【可】
+・衣装や髪型等のアレンジ：【可】
+・性格・設定のアレンジ：【不可】
+・別キャラクターとしての利用：【不可】
+・R18表現：【不可】
+・R18G表現：【不可】
+・政治・宗教等への利用：【不可】
+
+※キャラクターの利用について不明な点がある場合は、事前にお問い合わせください。
+
+---
+
+7. AI利用について
+
+本音源および付属イラスト等について、
+
+・AI学習への利用：【禁止】
+・AIによる音声生成・音声変換への利用：【禁止】
+・AI生成物への利用：【禁止】
+
+とします。
+
+---
+
+8. 二次配布について
+
+本音源の二次配布・転載は禁止します。
+
+ただし、以下については
+
+【原音設定（oto.ini）】
+【周波数表（.frq）】
+
+の配布を禁止します。
+
+---
+
+9. クレジット
+
+本音源を使用した作品を公開する際は、以下のように表記してください。
+
+UTAU音源「【hamumaru1031_voice】」
+制作者：【@samemaru2949】
+
+---
+
+10. 利用規約の変更
+
+本規約は、必要に応じて変更される場合があります。
+変更後も本音源を利用した場合、変更後の規約に同意したものとみなします。
+最新版の利用規約は公式サイトに掲載されているものとします。
+
+---
+
+11. 免責事項
+
+本音源を使用したことによって発生したトラブル、損害、損失等について、【@samemaru2949】は一切の責任を負いません。
+利用者自身の責任において本音源をご利用ください。
+
+---
+
+12. お問い合わせ
+
+規約について不明な点や、規約に記載されていない用途での利用を希望する場合は、以下までお問い合わせください。
+
+制作者：【@samemaru2949】
+
+---
+
+© 【2026】 @samemaru2949</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="link" class="fade-in">
+            <div class="section-meta">04 // CREATOR NETWORK</div>
+            <h2 class="section-title">LINK</h2>
+            <div class="panel">
+                <div class="link-group">
+                    <h3>CREATOR / AUTHOR</h3>
+                    <p style="margin-bottom: 1rem; font-weight: 700; color: #fff;">管理者：@samemaru2949</p>
+                    <a href="https://x.com/samemaru29?s=11" target="_blank" class="btn" style="font-size: 0.75rem; padding: 0.6rem 1.5rem;">X (TWITTER)</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; はむまる1031 Official Site All Rights Reserved.</p>
+    </footer>
+
+    <!-- Three.js 背景演出スクリプト -->
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        const scene = new THREE.Scene();
+        // フォグを青系の暗色に変更（視認性向上）
+        scene.fog = new THREE.FogExp2(0x01050a, 0.025);
+
+        // カメラを少し手前に引いてコンテンツの邪魔にならないように
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 12);
+
+        // ライト設定（シアンとブルー）
+        const ambientLight = new THREE.AmbientLight(0x0055ff, 0.6);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0x00f0ff, 3.0, 40);
+        pointLight.position.set(0, 4, 2);
+        scene.add(pointLight);
+
+        const cyanPointLight = new THREE.PointLight(0x00aaff, 2.0, 35);
+        cyanPointLight.position.set(-5, 2, -3);
+        scene.add(cyanPointLight);
+
+        // サイバーグリッド床（水色ベース）
+        const gridHelper = new THREE.GridHelper(80, 80, 0x00f0ff, 0x002255);
+        gridHelper.position.y = -1.5;
+        scene.add(gridHelper);
+
+        // 背景の巨大な円弧・リング（奥に配置して視認性確保）
+        const giantArcGroup = new THREE.Group();
+        giantArcGroup.position.set(0, 1, -10); // 手前の文字とかぶらないよう奥へ
+
+        const blueArcGeo = new THREE.TorusGeometry(12, 0.15, 16, 100, Math.PI * 1.2);
+        const blueArcMat = new THREE.MeshBasicMaterial({ color: 0x0066ff });
+        const blueArc = new THREE.Mesh(blueArcGeo, blueArcMat);
+        blueArc.rotation.z = Math.PI * 0.2;
+        giantArcGroup.add(blueArc);
+
+        const cyanRingGeo = new THREE.TorusGeometry(10.5, 0.08, 16, 100);
+        const cyanRingMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.6 });
+        const cyanRing = new THREE.Mesh(cyanRingGeo, cyanRingMat);
+        giantArcGroup.add(cyanRing);
+
+        const whiteRingGeo = new THREE.TorusGeometry(9.0, 0.03, 16, 100);
+        const whiteRingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+        const whiteRing = new THREE.Mesh(whiteRingGeo, whiteRingMat);
+        giantArcGroup.add(whiteRing);
+
+        scene.add(giantArcGroup);
+
+        // 中央のメカ円形ステージ（ポディウム）
+        const podiumGroup = new THREE.Group();
+        const baseGeometry = new THREE.CylinderGeometry(4.5, 5.0, 0.5, 32);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: 0x010a1a, metalness: 0.9, roughness: 0.2
+        });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = -1.2;
+        podiumGroup.add(base);
+
+        const ringGeometry = new THREE.TorusGeometry(4.5, 0.06, 16, 100);
+        const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = -0.9;
+        podiumGroup.add(ring);
+        scene.add(podiumGroup);
+
+        // 浮遊ブロック（シアン、ブルー、白）
+        const decoGroup = new THREE.Group();
+        const boxGeo = new THREE.BoxGeometry(0.6, 0.3, 0.15);
+        const matCyan = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.7 });
+        const matBlue = new THREE.MeshBasicMaterial({ color: 0x0055ff, transparent: true, opacity: 0.7 });
+        const matWhite = new THREE.MeshBasicMaterial({ color: 0xaaddff, transparent: true, opacity: 0.5 });
+        const mats = [matCyan, matBlue, matWhite];
+
+        for (let i = 0; i < 25; i++) {
+            const mesh = new THREE.Mesh(boxGeo, mats[i % mats.length]);
+            const side = i % 2 === 0 ? 1 : -1;
+            // コンテンツの邪魔にならないよう左右と奥に散らす
+            mesh.position.set(side * (6 + Math.random() * 6), Math.random() * 8 - 2, -5 + (Math.random() - 0.5) * 8);
+            mesh.rotation.z = Math.random() * 0.5;
+            decoGroup.add(mesh);
+        }
+        scene.add(decoGroup);
+
+        // パーティクル（シアン＆ブルーの混色、手前に来すぎないように調整）
+        const particleCount = 500;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        const particleSpeeds = new Float32Array(particleCount);
+
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            particlePositions[i] = (Math.random() - 0.5) * 40; // X
+            particlePositions[i + 1] = Math.random() * 20 - 5; // Y
+            // 手前に来すぎないようZ軸を -20 から 2 の間に制限（文字が読みやすくなる）
+            particlePositions[i + 2] = (Math.random() - 0.5) * 22 - 9; 
+            particleSpeeds[i / 3] = 0.01 + Math.random() * 0.02; // スピードを少し落とす
+        }
+
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+
+        // 水色のグラデーションテクスチャ作成
+        const bubbleCanvas = document.createElement('canvas');
+        bubbleCanvas.width = 64; bubbleCanvas.height = 64;
+        const ctx = bubbleCanvas.getContext('2d');
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(0, 240, 255, 1)');
+        gradient.addColorStop(0.4, 'rgba(0, 100, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+
+        const particleTexture = new THREE.CanvasTexture(bubbleCanvas);
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xffffff, size: 0.5, map: particleTexture,
+            transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+        });
+
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particles);
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            // カメラの揺れを少し抑えめに
+            camera.position.x = Math.sin(elapsedTime * 0.2) * 0.5;
+            camera.position.y = 2 + Math.cos(elapsedTime * 0.3) * 0.3;
+            camera.lookAt(0, 0, -2);
+
+            const positions = particleGeometry.attributes.position.array;
+            for (let i = 1; i < particleCount * 3; i += 3) {
+                positions[i] += particleSpeeds[(i - 1) / 3];
+                if (positions[i] > 15) { positions[i] = -5; }
+                positions[i - 1] += Math.sin(elapsedTime + i) * 0.002;
+            }
+            particleGeometry.attributes.position.needsUpdate = true;
+
+            ring.rotation.z = elapsedTime * 0.1;
+            giantArcGroup.rotation.z = Math.sin(elapsedTime * 0.2) * 0.05;
+            decoGroup.rotation.y = Math.sin(elapsedTime * 0.1) * 0.1;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+
+    <!-- UI/UX スクリプト -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const loader = document.getElementById('loader');
+            const progressEl = document.getElementById('loader-progress');
+            const logsEl = document.getElementById('loader-logs');
+            
+            let currentPercent = 0;
+            const interval = setInterval(() => {
+                currentPercent += 5;
+                if(currentPercent > 100) currentPercent = 100;
+                
+                progressEl.style.width = currentPercent + '%';
+
+                if(currentPercent === 30) logsEl.textContent = "INITIALIZING CYAN_CYBER_GRID...";
+                if(currentPercent === 60) logsEl.textContent = "SYNCING NEON_PARTICLES...";
+                if(currentPercent === 90) logsEl.textContent = "SYSTEM READY.";
+                
+                if (currentPercent >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => { loader.classList.add('fade-out'); }, 300);
+                }
+            }, 35);
+        });
+
+        const charImg = document.getElementById('home-char-img');
+        const speechBubble = document.getElementById('speech-bubble');
+
+        charImg.addEventListener('click', () => {
+            speechBubble.textContent = "ドリトスやんやんハムアタック！";
+            speechBubble.classList.add('active');
+            setTimeout(() => { speechBubble.classList.remove('active'); }, 1800);
+        });
+
+        const transitionOverlay = document.getElementById('transition-overlay');
+        document.querySelectorAll('.nav-links a, .home-nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('href');
+                if(targetId.startsWith('#')) {
+                    e.preventDefault();
+                    transitionOverlay.classList.add('active');
+                    setTimeout(() => { document.querySelector(targetId).scrollIntoView({ behavior: 'smooth' }); }, 80);
+                    setTimeout(() => { transitionOverlay.classList.remove('active'); }, 200);
+                }
+            });
+        });
+
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+        menuToggle.addEventListener('click', () => { navLinks.classList.toggle('active'); });
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => { navLinks.classList.remove('active'); });
+        });
+
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 30) { header.classList.add('scrolled'); }
+            else { header.classList.remove('scrolled'); }
+        }, { passive: true });
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) { 
+                    entry.target.classList.add('visible'); 
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+        const navItems = [...document.querySelectorAll('.nav-links a')];
+        const trackedSections = navItems.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+
+        const activeObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navItems.forEach(a => a.classList.toggle(
+                        'nav-active', a.getAttribute('href') === '#' + entry.target.id
+                    ));
+                }
+            });
+        }, { threshold: 0.3 });
+        trackedSections.forEach(section => activeObserver.observe(section));
+
+        const audio = document.getElementById('audio-source');
+        const playBtn = document.getElementById('play-btn');
+        const visualizer = document.getElementById('visualizer');
+        const progressBg = document.getElementById('progress-bg');
+        const progressCurrent = document.getElementById('progress-current');
+        const timeDisplay = document.getElementById('time-display');
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        audio.addEventListener('loadedmetadata', () => {
+            timeDisplay.textContent = `0:00 / ${formatTime(audio.duration)}`;
+        });
+
+        playBtn.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play().then(() => {
+                    playBtn.classList.add('playing');
+                    visualizer.classList.add('active');
+                }).catch(err => {
+                    console.error("再生エラー:", err);
+                    alert("音声ファイルを再生できません。");
+                });
+            } else {
+                audio.pause();
+                playBtn.classList.remove('playing');
+                visualizer.classList.remove('active');
+            }
+        });
+
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                const percent = (audio.currentTime / audio.duration) * 100;
+                progressCurrent.style.width = `${percent}%`;
+                timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+            }
+        });
+
+        audio.addEventListener('ended', () => {
+            playBtn.classList.remove('playing');
+            visualizer.classList.remove('active');
+            progressCurrent.style.width = '0%';
+        });
+
+        progressBg.addEventListener('click', (e) => {
+            if (!audio.duration) return;
+            const rect = progressBg.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = pos * audio.duration;
+        });
+    </script>
+</body>
+</html>
